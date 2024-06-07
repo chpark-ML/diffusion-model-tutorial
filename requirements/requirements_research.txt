@@ -1,0 +1,12 @@
+flake8
+ipykernel
+ipywidgets
+jupyterlab
+matplotlib
+mlflow
+openpyxl
+pandas
+pylint
+pymongo
+pytest
+seaborn

@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1.4  # COPY --link 
+# for multi stage build
+
+# base image
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE} AS deploy
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PYTHONIOENCODING=UTF-8
+
+ENV TZ=Asia/Seoul
+ARG DEBIAN_FRONTEND=noninteractive
+
+# args
+ARG GID
+ARG UID
+ARG USR
+ARG GRP
+ARG PASSWD=hello
+ARG WORKDIR_PATH
+ENV PYTHONPATH=${WORKDIR_PATH}
+ENV PATH=${WORKDIR_PATH}:/opt/conda/bin:$PATH
+
+# apt
+RUN apt-get update && apt-get -y --no-install-recommends install \
+        nano \
+    && rm -rf /var/lib/apt/lists/*
+
+# pip
+COPY requirements/requirements_deploy.txt /requirements_deploy.txt
+RUN pip3 --no-cache-dir install -r /requirements_deploy.txt
+
+# checkpoints
+COPY ./ /opt/ml/
+RUN mkdir -p /opt/ml/commons/checkpoints
+WORKDIR /opt/ml/commons/checkpoints
+# RUN wget -O dreamshaper_7.safetensors https://civitai.com/api/download/models/109123
+# RUN wget -P ./ https://huggingface.co/latent-consistency/lcm-lora-sdv1-5/resolve/main/pytorch_lora_weights.safetensors
+
+# user
+RUN groupadd -f -g ${GID} ${GRP} && \
+    useradd --shell /bin/zsh --create-home -u ${UID} -g ${GRP} \
+        -p $(openssl passwd -1 ${PASSWD}) ${USR} && \
+    echo "${USR} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+USER ${USR}
+
+# CMD python3 /opt/ml/projects/project-name/api/inference.py
