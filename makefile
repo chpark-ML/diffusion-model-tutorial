@@ -18,7 +18,7 @@ GRP = $(shell id -gn)
 USR = $(shell id -un)
 
 # Get docker image name
-IMAGE_NAME_BASE = ${SERVICE_NAME}-base:1.0.0
+IMAGE_NAME_BASE = ${SERVICE_NAME_BASE}-base:1.0.0
 IMAGE_NAME_RESEARCH = ${SERVICE_NAME_RESEARCH}-${USR}:1.0.0
 IMAGE_NAME_DEPLOY = ${SERVICE_NAME_DEPLOY}:1.0.0
 
