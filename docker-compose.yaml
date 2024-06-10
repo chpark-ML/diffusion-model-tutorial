@@ -1,27 +1,27 @@
 services:
-  ml-base:
-    image: ${IMAGE_NAME_BASE}
+  diffusion-model-tutorial-base:
+    image: diffusion-model-tutorial-base:1.0.0
     build:
-      context: ${DOCKER_BUILD_CONTEXT_PATH}
-      dockerfile: ${DOCKERFILE_NAME_BASE}
+      context: .
+      dockerfile: dockerfile_base
       
-  ml-research:
-    hostname: ml-research
-    image: ${IMAGE_NAME_RESEARCH}
-    container_name: ${CONTAINER_NAME_RESEARCH}
+  diffusion-model-tutorial-research:
+    hostname: diffusion-model-tutorial-research
+    image: diffusion-model-tutorial-research-chpark:1.0.0
+    container_name: diffusion-model-tutorial-research-chpark
     ipc: host 
     tty: true
     stdin_open: true
     volumes:
-      - ${CURRENT_PATH}:${WORKDIR_PATH}
-      - ${HOME}/.vscode-server:/home/${USR}/.vscode-server  # VSCode 설치 유지 가능하도록 함.
-    working_dir: ${WORKDIR_PATH}
+      - /home/chpark/projects/diffusion-model-tutorial:/opt/diffusion-model-tutorial
+      - /home/chpark/.vscode-server:/home/chpark/.vscode-server  # VSCode 설치 유지 가능하도록 함.
+    working_dir: /opt/diffusion-model-tutorial
     build:
-      context: ${DOCKER_BUILD_CONTEXT_PATH}
-      dockerfile: ${DOCKERFILE_NAME_RESEARCH}
+      context: .
+      dockerfile: dockerfile_research
       target: ${TARGET_STAGE:-train}
       args: 
-        BASE_IMAGE: ${IMAGE_NAME_BASE}
+        BASE_IMAGE: diffusion-model-tutorial-base:1.0.0
         WORKDIR_PATH: ${WORKDIR_PATH:-/opt/ml}
         GRP: ${GRP:-noname}
         USR: ${USR:-noname}
@@ -35,20 +35,20 @@ services:
               count: all
               capabilities: [ gpu ]
 
-  ml-deploy:
-    hostname: ml-deploy
-    image: ${IMAGE_NAME_DEPLOY}
-    container_name: ${CONTAINER_NAME_DEPLOY}
+  diffusion-model-tutorial-deploy:
+    hostname: diffusion-model-tutorial-deploy
+    image: diffusion-model-tutorial-deploy:1.0.0
+    container_name: diffusion-model-tutorial-deploy
     ipc: host 
     tty: true
     stdin_open: true
-    working_dir: ${WORKDIR_PATH}
+    working_dir: /opt/diffusion-model-tutorial
     build:
-      context: ${DOCKER_BUILD_CONTEXT_PATH}
-      dockerfile: ${DOCKERFILE_NAME_DEPLOY}
+      context: .
+      dockerfile: dockerfile_deploy
       target: ${TARGET_STAGE:-deploy}
       args: 
-        BASE_IMAGE: ${IMAGE_NAME_BASE}
+        BASE_IMAGE: diffusion-model-tutorial-base:1.0.0
         WORKDIR_PATH: ${WORKDIR_PATH:-/opt/ml}
         GRP: ${GRP:-noname}
         USR: ${USR:-noname}

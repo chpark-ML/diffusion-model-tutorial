@@ -1,0 +1,65 @@
+services:
+  ${SERVICE_NAME}-base:
+    image: ${IMAGE_NAME_BASE}
+    build:
+      context: ${DOCKER_BUILD_CONTEXT_PATH}
+      dockerfile: ${DOCKERFILE_NAME_BASE}
+      
+  ${SERVICE_NAME}-research:
+    hostname: ${SERVICE_NAME}-research
+    image: ${IMAGE_NAME_RESEARCH}
+    container_name: ${CONTAINER_NAME_RESEARCH}
+    ipc: host 
+    tty: true
+    stdin_open: true
+    volumes:
+      - ${CURRENT_PATH}:${WORKDIR_PATH}
+      - ${HOME}/.vscode-server:/home/${USR}/.vscode-server  # VSCode 설치 유지 가능하도록 함.
+    working_dir: ${WORKDIR_PATH}
+    build:
+      context: ${DOCKER_BUILD_CONTEXT_PATH}
+      dockerfile: ${DOCKERFILE_NAME_RESEARCH}
+      target: ${TARGET_STAGE:-train}
+      args: 
+        BASE_IMAGE: ${IMAGE_NAME_BASE}
+        WORKDIR_PATH: ${WORKDIR_PATH:-/opt/ml}
+        GRP: ${GRP:-noname}
+        USR: ${USR:-noname}
+        GID: ${GID:-noname}
+        UID: ${UID:-noname}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
+  ${SERVICE_NAME}-deploy:
+    hostname: ${SERVICE_NAME}-deploy
+    image: ${IMAGE_NAME_DEPLOY}
+    container_name: ${CONTAINER_NAME_DEPLOY}
+    ipc: host 
+    tty: true
+    stdin_open: true
+    working_dir: ${WORKDIR_PATH}
+    build:
+      context: ${DOCKER_BUILD_CONTEXT_PATH}
+      dockerfile: ${DOCKERFILE_NAME_DEPLOY}
+      target: ${TARGET_STAGE:-deploy}
+      args: 
+        BASE_IMAGE: ${IMAGE_NAME_BASE}
+        WORKDIR_PATH: ${WORKDIR_PATH:-/opt/ml}
+        GRP: ${GRP:-noname}
+        USR: ${USR:-noname}
+        GID: ${GID:-noname}
+        UID: ${UID:-noname}
+    ports:
+      - "80:80"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]

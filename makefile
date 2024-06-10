@@ -1,5 +1,5 @@
 # Set service name
-SERVICE_NAME = ml
+SERVICE_NAME = diffusion-model-tutorial
 RESEARCH_NAME = research
 DEPLOY_NAME = deploy
 SERVICE_NAME_BASE = ${SERVICE_NAME}-base
@@ -45,6 +45,7 @@ ENV_TEXT = "$\
 	UID=${UID}\n$\
 	GRP=${GRP}\n$\
 	USR=${USR}\n$\
+	SERVICE_NAME=${SERVICE_NAME}\n$\
 	IMAGE_NAME_BASE=${IMAGE_NAME_BASE}\n$\
 	IMAGE_NAME_RESEARCH=${IMAGE_NAME_RESEARCH}\n$\
 	IMAGE_NAME_DEPLOY=${IMAGE_NAME_DEPLOY}\n$\
@@ -73,10 +74,11 @@ services:$\
 \n      - ${HOME}:/mnt/home$\
 \n"
 
-${OVERRIDE_FILE}:
+over:
 	printf ${OVERRIDE_BASE} >> ${OVERRIDE_FILE}
 
-over: ${OVERRIDE_FILE}
+generate: 
+	export $(grep -v '^#' .env | xargs) && envsubst < docker-compose.template.yaml > docker-compose.yaml
 
 # base docker
 build-base:
