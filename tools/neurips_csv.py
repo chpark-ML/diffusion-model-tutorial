@@ -1,3 +1,9 @@
+import argparse
+import functools
+import multiprocessing
+import logging
+import os
+
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
@@ -5,10 +11,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm import tqdm
 
 import fitz  # PyMuPDF
-from io import BytesIO
 import nltk
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
+
+logger = logging.getLogger(__name__)
 
 # NLTK에서 영어의 불용어(stopwords) 다운로드
 nltk.download('stopwords')
@@ -16,8 +22,9 @@ nltk.download('punkt')
 
 YEAR = 2023
 BASE_URL = f"https://papers.nips.cc/paper_files/paper/{YEAR}"
-MAX_NUM_PAPER = 10000
-TOP_K = 10
+MAX_NUM_PAPER = 10
+TOP_K = 5
+
 
 def download_pdf_from_url(pdf_url):
     """
@@ -26,6 +33,7 @@ def download_pdf_from_url(pdf_url):
     response = requests.get(pdf_url)
     response.raise_for_status()
     return response.content
+
 
 def extract_text_from_pdf(pdf_content, stop_pattern='References\n'):
     """
@@ -42,6 +50,7 @@ def extract_text_from_pdf(pdf_content, stop_pattern='References\n'):
         text += page_text
     return text
 
+
 def calculate_tfidf(text):
     """
     Calculate TF-IDF scores for each word in the text and return a dictionary of words and their TF-IDF scores.
@@ -54,31 +63,6 @@ def calculate_tfidf(text):
     # Create a dictionary of words and their TF-IDF scores
     word_tfidf = {word: score for word, score in zip(feature_names, tfidf_matrix.toarray()[0])}
     return word_tfidf
-
-def extract_key_words_in_abstract(text):
-    """
-    Given text, returns key words using TF-IDF.
-    """
-    # Initialize TF-IDF vectorizer
-    tfidf_vectorizer = TfidfVectorizer(stop_words='english')
-    
-    # Fit the vectorizer and transform the text
-    tfidf_matrix = tfidf_vectorizer.fit_transform([text])
-    
-    # Get feature names (words)
-    feature_names = tfidf_vectorizer.get_feature_names_out()
-    
-    # Get TF-IDF scores
-    tfidf_scores = tfidf_matrix.toarray()[0]
-    
-    # Create a dictionary of words and their TF-IDF scores
-    word_tfidf = {word: score for word, score in zip(feature_names, tfidf_scores)}
-    
-    # Select top 5 words with highest TF-IDF scores
-    top_words = sorted(word_tfidf.items(), key=lambda x: x[1], reverse=True)[:5]
-    
-    # Return only the words (without scores)
-    return [word for word, _ in top_words]
 
 
 def extract_paper_info(url):
@@ -104,33 +88,24 @@ def extract_paper_info(url):
     return title, authors, abstract, pdf_url, publication_date
 
 
-def create_paper_dataframe():
+def process(paper_links_chunks, is_sanity=False):
     """
     Given a NeurIPS conference year, extracts paper titles, authors, abstracts, PDF URLs, and publication dates,
     and returns them as a DataFrame.
     """
-    response = requests.get(BASE_URL)
-    response.raise_for_status()
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    paper_links = soup.find_all('a', href=True)
-
-    _counter = 0
     paper_data = []
     # tqdm 루프를 사용하여 진행 상황을 표시하며, 최대 10개의 논문만 처리합니다.
-    for link in tqdm(paper_links, total=len(paper_links), desc="Processing Papers"):
-        _counter += 1
-        if _counter >= MAX_NUM_PAPER:
-            break
+    for link in tqdm(paper_links_chunks, total=len(paper_links_chunks), desc="Processing Papers"):
         if '/paper/' not in link['href']:
             continue
-        
         paper_id = link['href'].split('/')[-1]
         paper_url = f'{BASE_URL}/hash/{paper_id}'
 
         # 논문 정보 추출
         title, authors, abstract, pdf_url, publication_date = extract_paper_info(paper_url)
-        key_words_in_abstract = extract_key_words_in_abstract(abstract)
+        key_words_in_abstract = calculate_tfidf(abstract)
+        key_words_in_abstract = sorted(key_words_in_abstract.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
+        key_words_in_abstract = [word for word, _ in key_words_in_abstract]
 
         # PDF 파일 다운로드
         pdf_content = download_pdf_from_url(pdf_url)
@@ -143,8 +118,7 @@ def create_paper_dataframe():
 
         # TF-IDF가 높은 단어 10개 출력
         key_words_in_paper = sorted(word_tfidf.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
-        # key_words_in_paper_str = ', '.join([f"{word} ({score:.2f})" for word, score in key_words_in_paper])
-        key_words_in_paper_str = ', '.join([f"{word}" for word, score in key_words_in_paper])
+        key_words_in_paper = [word for word, _ in key_words_in_paper]
 
         # 논문 데이터 추가
         paper_data.append({
@@ -154,10 +128,14 @@ def create_paper_dataframe():
             'PDF_URL': pdf_url,
             'Publication_Date': publication_date,
             'Key_Words_in_Abstract': ', '.join(key_words_in_abstract),
-            'Key_Words_in_Paper': key_words_in_paper_str
+            'Key_Words_in_Paper': ', '.join(key_words_in_paper)
         })
-
-    return pd.DataFrame(paper_data)
+    if len(paper_data) == 0:
+        return pd.DataFrame(pd.DataFrame(columns=['Title', 'Authors', 'Abstract',
+                                                  'PDF_URL', 'Publication_Date',
+                                                  'Key_Words_in_Abstract', 'Key_Words_in_Paper']))
+    else:
+        return pd.DataFrame(paper_data)
 
 
 def save_dataframe_to_csv(dataframe, filename):
@@ -166,6 +144,40 @@ def save_dataframe_to_csv(dataframe, filename):
     """
     dataframe.to_csv(filename, index=False)
 
-# 예시: 2023년 NeurIPS 논문 추출하여 데이터프레임 생성하고 CSV 파일로 저장
-papers_df = create_paper_dataframe()
-save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}.csv')
+
+def chunkify(lst, n):
+    """리스트를 n 개의 청크로 나누는 함수"""
+    chunk_size = len(lst) // n + (len(lst) % n > 0)
+    for i in range(0, len(lst), chunk_size):
+        yield lst[i:i + chunk_size]
+
+
+def main():
+    parser = argparse.ArgumentParser(description='neurips info extraction')
+    parser.add_argument('--sanity_check', type=bool, default=True)
+    parser.add_argument('--num_shards', default=4, type=int)
+    args = parser.parse_args()
+
+    response = requests.get(BASE_URL)
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    paper_links = soup.find_all('a', href=True)
+    paper_links = paper_links[:MAX_NUM_PAPER]
+    logger.info(f"number of paper link to process : {len(paper_links)}.")
+    paper_links_chunks = list(chunkify(paper_links, args.num_shards))
+
+    # sanity check
+    if args.sanity_check:
+        process(paper_links_chunks[0], is_sanity=True)
+
+    with multiprocessing.Pool(args.num_shards) as p:
+        results = p.map(functools.partial(process), paper_links_chunks)
+
+    papers_df = pd.concat(results, ignore_index=True)
+    save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}.csv')
+
+
+if __name__ == '__main__':
+    _THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+    main()
