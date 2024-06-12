@@ -77,8 +77,11 @@ services:$\
 over:
 	printf ${OVERRIDE_BASE} >> ${OVERRIDE_FILE}
 
-generate: 
-	export $(grep -v '^#' .env | xargs) && envsubst < docker-compose.template.yaml > ${DOCKER_COMPOSE_NAME}
+# generate: 
+# 	@export $(grep -v '^#' .env | xargs) && envsubst < docker-compose.template.yaml > ${DOCKER_COMPOSE_NAME}
+
+generate:
+	DOCKER_COMPOSE_NAME=$(DOCKER_COMPOSE_NAME) ./generate-docker-compose.sh
 
 # base docker
 build-base:
