@@ -1,3 +1,4 @@
+beautifulsoup4
 flake8
 ipykernel
 ipywidgets
@@ -9,4 +10,5 @@ pandas
 pylint
 pymongo
 pytest
+requests
 seaborn
