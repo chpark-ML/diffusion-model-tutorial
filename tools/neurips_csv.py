@@ -80,7 +80,6 @@ def extract_paper_info(url):
     exclusion = ['fa-sign-in-alt', 'fa-sign-out-alt']
     authors = ', '.join([author.get_text(strip=True) for author in soup.find_all('i') if not any(ex in author.get('class', []) for ex in exclusion)])
 
-
     abstract = soup.find('h4', string='Abstract').find_next('p').get_text(strip=True)
     pdf_url = soup.find('meta', {'name': 'citation_pdf_url'})['content']
     publication_date = soup.find('meta', {'name': 'citation_publication_date'})['content']
@@ -154,8 +153,8 @@ def chunkify(lst, n):
 
 def main():
     parser = argparse.ArgumentParser(description='neurips info extraction')
-    parser.add_argument('--sanity_check', type=bool, default=True)
-    parser.add_argument('--num_shards', default=4, type=int)
+    parser.add_argument('--sanity_check', type=bool, default=False)
+    parser.add_argument('--num_shards', default=1, type=int)
     args = parser.parse_args()
 
     response = requests.get(BASE_URL)
@@ -169,10 +168,10 @@ def main():
 
     # sanity check
     if args.sanity_check:
-        process(paper_links_chunks[0], is_sanity=True)
+        results = process(paper_links_chunks[0], is_sanity=True)
 
     with multiprocessing.Pool(args.num_shards) as p:
-        results = p.map(functools.partial(process), paper_links_chunks)
+        results = p.map(functools.partial(process, is_sanity=False), paper_links_chunks)
 
     papers_df = pd.concat(results, ignore_index=True)
     save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}.csv')
