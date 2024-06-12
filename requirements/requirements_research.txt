@@ -5,10 +5,12 @@ ipywidgets
 jupyterlab
 matplotlib
 mlflow
+nltk
 openpyxl
 pandas
 pylint
 pymongo
+pymupdf
 pytest
 requests
 seaborn
