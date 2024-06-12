@@ -78,6 +78,7 @@ over:
 	printf ${OVERRIDE_BASE} >> ${OVERRIDE_FILE}
 
 generate:
+	chmod +x generate-docker-compose.sh
 	DOCKER_COMPOSE_NAME=$(DOCKER_COMPOSE_NAME) ./generate-docker-compose.sh
 
 # base docker

@@ -163,6 +163,7 @@ cython_debug/
 
 # docker override
 docker-compose.override.yaml
+docker-compose.yaml
 
 # dataframe
 *.csv
