@@ -4,15 +4,15 @@ import multiprocessing
 import logging
 import os
 
+import fitz  # PyMuPDF
+import nltk
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm import tqdm
 
-import fitz  # PyMuPDF
-import nltk
-from nltk.corpus import stopwords
 
 _THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger(__name__)
