@@ -23,7 +23,7 @@ nltk.download("punkt")
 
 YEAR = 2023
 BASE_URL = f"https://papers.nips.cc/paper_files/paper/{YEAR}"
-MAX_NUM_PAPER = 10000
+MAX_NUM_PAPER = 10
 TOP_K = 10
 
 
@@ -82,12 +82,15 @@ def calculate_tfidf(text):
     Calculate TF-IDF scores for each word in the text and return a dictionary of words and their TF-IDF scores.
     """
     # Check if the input text is empty or contains only stop words
-    if not text.strip():
-        raise ValueError("The input text is empty.")
+    if not isinstance(text, list):
+        if not text.strip():
+            raise ValueError("The input text is empty.")
+        text = [text]
 
     # TF-IDF vectorization
     tfidf_vectorizer = TfidfVectorizer(stop_words=stopwords.words("english"))
-    tfidf_matrix = tfidf_vectorizer.fit_transform([text])
+
+    tfidf_matrix = tfidf_vectorizer.fit_transform(text)
 
     # Check if the resulting matrix is empty
     if tfidf_matrix.shape[1] == 0:
@@ -211,7 +214,7 @@ def chunkify(lst, n):
 def main():
     parser = argparse.ArgumentParser(description="neurips info extraction")
     parser.add_argument("--sanity_check", type=bool, default=False)
-    parser.add_argument("--num_shards", default=32, type=int)
+    parser.add_argument("--num_shards", default=4, type=int)
     args = parser.parse_args()
 
     response = requests.get(BASE_URL)
@@ -237,6 +240,10 @@ def main():
         papers_df = results
     else:
         papers_df = pd.concat(results, ignore_index=True)
+
+    abstracts = papers_df["Abstract"].astype(str).tolist()
+    word_tfidf_abstracts = calculate_tfidf(abstracts)
+
     save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}')
 
 
