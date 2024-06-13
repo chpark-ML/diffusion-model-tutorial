@@ -17,8 +17,8 @@ from nltk.corpus import stopwords
 logger = logging.getLogger(__name__)
 
 # NLTK에서 영어의 불용어(stopwords) 다운로드
-nltk.download('stopwords')
-nltk.download('punkt')
+nltk.download("stopwords")
+nltk.download("punkt")
 
 YEAR = 2023
 BASE_URL = f"https://papers.nips.cc/paper_files/paper/{YEAR}"
@@ -35,7 +35,7 @@ def download_pdf_from_url(pdf_url):
     return response.content
 
 
-def extract_text_from_pdf(pdf_content, stop_pattern='References\n'):
+def extract_text_from_pdf(pdf_content, stop_pattern="References\n"):
     """
     Extract text content from a PDF file until the stop pattern is encountered.
     """
@@ -56,12 +56,14 @@ def calculate_tfidf(text):
     Calculate TF-IDF scores for each word in the text and return a dictionary of words and their TF-IDF scores.
     """
     # TF-IDF vectorization
-    tfidf_vectorizer = TfidfVectorizer(stop_words=stopwords.words('english'))
+    tfidf_vectorizer = TfidfVectorizer(stop_words=stopwords.words("english"))
     tfidf_matrix = tfidf_vectorizer.fit_transform([text])
     feature_names = tfidf_vectorizer.get_feature_names_out()
 
     # Create a dictionary of words and their TF-IDF scores
-    word_tfidf = {word: score for word, score in zip(feature_names, tfidf_matrix.toarray()[0])}
+    word_tfidf = {
+        word: score for word, score in zip(feature_names, tfidf_matrix.toarray()[0])
+    }
     return word_tfidf
 
 
@@ -72,17 +74,25 @@ def extract_paper_info(url):
     response = requests.get(url)
     response.raise_for_status()
 
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = BeautifulSoup(response.text, "html.parser")
 
-    title = soup.find('title').get_text(strip=True)
-    
+    title = soup.find("title").get_text(strip=True)
+
     # 클래스 이름이 있는 요소를 필터링하여 제외합니다.
-    exclusion = ['fa-sign-in-alt', 'fa-sign-out-alt']
-    authors = ', '.join([author.get_text(strip=True) for author in soup.find_all('i') if not any(ex in author.get('class', []) for ex in exclusion)])
+    exclusion = ["fa-sign-in-alt", "fa-sign-out-alt"]
+    authors = ", ".join(
+        [
+            author.get_text(strip=True)
+            for author in soup.find_all("i")
+            if not any(ex in author.get("class", []) for ex in exclusion)
+        ]
+    )
 
-    abstract = soup.find('h4', string='Abstract').find_next('p').get_text(strip=True)
-    pdf_url = soup.find('meta', {'name': 'citation_pdf_url'})['content']
-    publication_date = soup.find('meta', {'name': 'citation_publication_date'})['content']
+    abstract = soup.find("h4", string="Abstract").find_next("p").get_text(strip=True)
+    pdf_url = soup.find("meta", {"name": "citation_pdf_url"})["content"]
+    publication_date = soup.find("meta", {"name": "citation_publication_date"})[
+        "content"
+    ]
 
     return title, authors, abstract, pdf_url, publication_date
 
@@ -94,18 +104,24 @@ def process(paper_links_chunks, is_sanity=False):
     """
     paper_data = []
     # tqdm 루프를 사용하여 진행 상황을 표시하며, 최대 10개의 논문만 처리합니다.
-    for link in tqdm(paper_links_chunks, total=len(paper_links_chunks), desc="Processing Papers"):
-        link = BeautifulSoup(link, 'html.parser').a
-        if '/paper/' not in link['href']:
+    for link in tqdm(
+        paper_links_chunks, total=len(paper_links_chunks), desc="Processing Papers"
+    ):
+        link = BeautifulSoup(link, "html.parser").a
+        if "/paper/" not in link["href"]:
             continue
 
-        paper_id = link['href'].split('/')[-1]
-        paper_url = f'{BASE_URL}/hash/{paper_id}'
+        paper_id = link["href"].split("/")[-1]
+        paper_url = f"{BASE_URL}/hash/{paper_id}"
 
         # 논문 정보 추출
-        title, authors, abstract, pdf_url, publication_date = extract_paper_info(paper_url)
+        title, authors, abstract, pdf_url, publication_date = extract_paper_info(
+            paper_url
+        )
         key_words_in_abstract = calculate_tfidf(abstract)
-        key_words_in_abstract = sorted(key_words_in_abstract.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
+        key_words_in_abstract = sorted(
+            key_words_in_abstract.items(), key=lambda x: x[1], reverse=True
+        )[:TOP_K]
         key_words_in_abstract = [word for word, _ in key_words_in_abstract]
 
         # PDF 파일 다운로드
@@ -118,23 +134,37 @@ def process(paper_links_chunks, is_sanity=False):
         word_tfidf = calculate_tfidf(pdf_text)
 
         # TF-IDF가 높은 단어 10개 출력
-        key_words_in_paper = sorted(word_tfidf.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
+        key_words_in_paper = sorted(
+            word_tfidf.items(), key=lambda x: x[1], reverse=True
+        )[:TOP_K]
         key_words_in_paper = [word for word, _ in key_words_in_paper]
 
         # 논문 데이터 추가
-        paper_data.append({
-            'Title': title,
-            'Authors': authors,
-            'Abstract': abstract,
-            'PDF_URL': pdf_url,
-            'Publication_Date': publication_date,
-            'Key_Words_in_Abstract': ', '.join(key_words_in_abstract),
-            'Key_Words_in_Paper': ', '.join(key_words_in_paper)
-        })
+        paper_data.append(
+            {
+                "Title": title,
+                "Authors": authors,
+                "Abstract": abstract,
+                "PDF_URL": pdf_url,
+                "Publication_Date": publication_date,
+                "Key_Words_in_Abstract": ", ".join(key_words_in_abstract),
+                "Key_Words_in_Paper": ", ".join(key_words_in_paper),
+            }
+        )
     if len(paper_data) == 0:
-        return pd.DataFrame(pd.DataFrame(columns=['Title', 'Authors', 'Abstract',
-                                                  'PDF_URL', 'Publication_Date',
-                                                  'Key_Words_in_Abstract', 'Key_Words_in_Paper']))
+        return pd.DataFrame(
+            pd.DataFrame(
+                columns=[
+                    "Title",
+                    "Authors",
+                    "Abstract",
+                    "PDF_URL",
+                    "Publication_Date",
+                    "Key_Words_in_Abstract",
+                    "Key_Words_in_Paper",
+                ]
+            )
+        )
     else:
         return pd.DataFrame(paper_data)
 
@@ -150,20 +180,20 @@ def chunkify(lst, n):
     """리스트를 n 개의 청크로 나누는 함수"""
     chunk_size = len(lst) // n + (len(lst) % n > 0)
     for i in range(0, len(lst), chunk_size):
-        yield lst[i:i + chunk_size]
+        yield lst[i : i + chunk_size]
 
 
 def main():
-    parser = argparse.ArgumentParser(description='neurips info extraction')
-    parser.add_argument('--sanity_check', type=bool, default=False)
-    parser.add_argument('--num_shards', default=16, type=int)
+    parser = argparse.ArgumentParser(description="neurips info extraction")
+    parser.add_argument("--sanity_check", type=bool, default=False)
+    parser.add_argument("--num_shards", default=16, type=int)
     args = parser.parse_args()
 
     response = requests.get(BASE_URL)
     response.raise_for_status()
 
-    soup = BeautifulSoup(response.text, 'html.parser')
-    paper_links = soup.find_all('a', href=True)
+    soup = BeautifulSoup(response.text, "html.parser")
+    paper_links = soup.find_all("a", href=True)
     paper_links = paper_links[:MAX_NUM_PAPER]
     logger.info(f"number of paper link to process : {len(paper_links)}.")
     paper_links = [str(link) for link in paper_links]
@@ -177,9 +207,9 @@ def main():
         results = p.map(functools.partial(process, is_sanity=False), paper_links_chunks)
 
     papers_df = pd.concat(results, ignore_index=True)
-    save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}.csv')
+    save_dataframe_to_csv(papers_df, f"neurips_papers_{YEAR}.csv")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     _THIS_DIR = os.path.dirname(os.path.realpath(__file__))
     main()
