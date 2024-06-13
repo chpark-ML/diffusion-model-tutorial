@@ -206,8 +206,11 @@ def main():
     with multiprocessing.Pool(args.num_shards) as p:
         results = p.map(functools.partial(process, is_sanity=False), paper_links_chunks)
 
-    papers_df = pd.concat(results, ignore_index=True)
-    save_dataframe_to_csv(papers_df, f"neurips_papers_{YEAR}.csv")
+    if isinstance(results, pd.DataFrame):
+        papers_df = results
+    else:
+        papers_df = pd.concat(results, ignore_index=True)
+    save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}.csv')
 
 
 if __name__ == "__main__":
