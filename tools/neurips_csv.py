@@ -22,8 +22,8 @@ nltk.download('punkt')
 
 YEAR = 2023
 BASE_URL = f"https://papers.nips.cc/paper_files/paper/{YEAR}"
-MAX_NUM_PAPER = 10
-TOP_K = 5
+MAX_NUM_PAPER = 10000
+TOP_K = 10
 
 
 def download_pdf_from_url(pdf_url):
@@ -95,8 +95,10 @@ def process(paper_links_chunks, is_sanity=False):
     paper_data = []
     # tqdm 루프를 사용하여 진행 상황을 표시하며, 최대 10개의 논문만 처리합니다.
     for link in tqdm(paper_links_chunks, total=len(paper_links_chunks), desc="Processing Papers"):
+        link = BeautifulSoup(link, 'html.parser').a
         if '/paper/' not in link['href']:
             continue
+
         paper_id = link['href'].split('/')[-1]
         paper_url = f'{BASE_URL}/hash/{paper_id}'
 
@@ -154,7 +156,7 @@ def chunkify(lst, n):
 def main():
     parser = argparse.ArgumentParser(description='neurips info extraction')
     parser.add_argument('--sanity_check', type=bool, default=False)
-    parser.add_argument('--num_shards', default=1, type=int)
+    parser.add_argument('--num_shards', default=16, type=int)
     args = parser.parse_args()
 
     response = requests.get(BASE_URL)
@@ -164,6 +166,7 @@ def main():
     paper_links = soup.find_all('a', href=True)
     paper_links = paper_links[:MAX_NUM_PAPER]
     logger.info(f"number of paper link to process : {len(paper_links)}.")
+    paper_links = [str(link) for link in paper_links]
     paper_links_chunks = list(chunkify(paper_links, args.num_shards))
 
     # sanity check
