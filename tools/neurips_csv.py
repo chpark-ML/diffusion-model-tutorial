@@ -197,7 +197,8 @@ def save_dataframe_to_csv(dataframe, filename):
     """
     Saves a DataFrame to a CSV file.
     """
-    dataframe.to_csv(filename, index=False)
+    dataframe.to_csv(filename + ".csv", index=False)
+    dataframe.to_excel(filename + ".xlsx", index=False)
 
 
 def chunkify(lst, n):
@@ -236,7 +237,7 @@ def main():
         papers_df = results
     else:
         papers_df = pd.concat(results, ignore_index=True)
-    save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}.csv')
+    save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}')
 
 
 if __name__ == "__main__":
