@@ -167,3 +167,4 @@ docker-compose.yaml
 
 # dataframe
 *.csv
+*.xlsx

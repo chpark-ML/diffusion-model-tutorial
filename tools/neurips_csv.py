@@ -23,7 +23,7 @@ nltk.download("punkt")
 
 YEAR = 2023
 BASE_URL = f"https://papers.nips.cc/paper_files/paper/{YEAR}"
-MAX_NUM_PAPER = 10
+MAX_NUM_PAPER = 10000
 TOP_K = 10
 
 
@@ -85,12 +85,14 @@ def calculate_tfidf(text):
     if not isinstance(text, list):
         if not text.strip():
             raise ValueError("The input text is empty.")
-        text = [text]
+        docs = [text]
+    else:
+        docs = text
 
     # TF-IDF vectorization
     tfidf_vectorizer = TfidfVectorizer(stop_words=stopwords.words("english"))
 
-    tfidf_matrix = tfidf_vectorizer.fit_transform(text)
+    tfidf_matrix = tfidf_vectorizer.fit_transform(docs)
 
     # Check if the resulting matrix is empty
     if tfidf_matrix.shape[1] == 0:
@@ -99,7 +101,8 @@ def calculate_tfidf(text):
     feature_names = tfidf_vectorizer.get_feature_names_out()
 
     # Create a dictionary of words and their TF-IDF scores
-    word_tfidf = {word: score for word, score in zip(feature_names, tfidf_matrix.toarray()[0])}
+    word_tfidf = [{word: score for word, score in zip(feature_names, tfidf_matrix.toarray()[idx])}
+                  for idx, _ in enumerate(docs)]
 
     return word_tfidf
 
@@ -149,7 +152,7 @@ def process(paper_links_chunks, is_sanity=False):
             paper_url
         )
         try:
-            key_words_in_abstract = calculate_tfidf(abstract)
+            key_words_in_abstract = calculate_tfidf(abstract)[0]
         except ValueError as e:
             log_error(title, e)
             continue
@@ -164,7 +167,7 @@ def process(paper_links_chunks, is_sanity=False):
 
         # TF-IDF 계산
         try:
-            word_tfidf = calculate_tfidf(pdf_text)
+            word_tfidf = calculate_tfidf(pdf_text)[0]
         except ValueError as e:
             log_error(title, e)
             continue
@@ -179,19 +182,21 @@ def process(paper_links_chunks, is_sanity=False):
         paper_data.append({"Title": title,
                            "Authors": authors,
                            "Abstract": abstract,
+                           "PDF Text": pdf_text,
                            "PDF URL": pdf_url,
                            "Publication date": publication_date,
-                           "TF-IDF given Abstract": ", ".join(key_words_in_abstract),
-                           "TF-IDF given FullText": ", ".join(key_words_in_paper)})
+                           "TF-IDF given Paper-wise Abstract": ", ".join(key_words_in_abstract),
+                           "TF-IDF given Paper-wise Full Text": ", ".join(key_words_in_paper)})
     if len(paper_data) == 0:
         return pd.DataFrame(
             pd.DataFrame(columns=["Title",
                                   "Authors",
                                   "Abstract",
+                                  "PDF Text",
                                   "PDF_URL",
                                   "Publication_Date",
-                                  "Key_Words_in_Abstract",
-                                  "Key_Words_in_Paper"]))
+                                  "TF-IDF given Paper-wise Abstract",
+                                  "TF-IDF given Paper-wise Full Text"]))
     else:
         return pd.DataFrame(paper_data)
 
@@ -214,7 +219,7 @@ def chunkify(lst, n):
 def main():
     parser = argparse.ArgumentParser(description="neurips info extraction")
     parser.add_argument("--sanity_check", type=bool, default=False)
-    parser.add_argument("--num_shards", default=4, type=int)
+    parser.add_argument("--num_shards", default=32, type=int)
     args = parser.parse_args()
 
     response = requests.get(BASE_URL)
@@ -243,6 +248,22 @@ def main():
 
     abstracts = papers_df["Abstract"].astype(str).tolist()
     word_tfidf_abstracts = calculate_tfidf(abstracts)
+    key_words_list = []
+    for tfidf_dict in word_tfidf_abstracts:
+        key_words = sorted(tfidf_dict.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
+        key_words = [word for word, _ in key_words]
+        key_words_list.append(", ".join(key_words))
+    papers_df["TF-IDF given the whole Abstract"] = key_words_list
+
+    pdf_text = papers_df["PDF Text"].astype(str).tolist()
+    word_tfidf_pdf_text = calculate_tfidf(pdf_text)
+    key_words_list = []
+    for tfidf_dict in word_tfidf_pdf_text:
+        key_words = sorted(tfidf_dict.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
+        key_words = [word for word, _ in key_words]
+        key_words_list.append(", ".join(key_words))
+    papers_df["TF-IDF given the whole Full Text"] = key_words_list
+    del papers_df["PDF Text"]
 
     save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}')
 
