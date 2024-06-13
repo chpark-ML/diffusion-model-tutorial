@@ -14,6 +14,7 @@ import fitz  # PyMuPDF
 import nltk
 from nltk.corpus import stopwords
 
+_THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger(__name__)
 
 # NLTK에서 영어의 불용어(stopwords) 다운로드
@@ -239,5 +240,4 @@ def main():
 
 
 if __name__ == "__main__":
-    _THIS_DIR = os.path.dirname(os.path.realpath(__file__))
     main()
