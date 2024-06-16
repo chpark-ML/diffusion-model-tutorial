@@ -26,6 +26,7 @@ IMAGE_NAME_DEPLOY = ${SERVICE_NAME_DEPLOY}:1.0.0
 
 # Get docker container name
 CONTAINER_NAME_RESEARCH = ${SERVICE_NAME_RESEARCH}-${USR}
+CONTAINER_NAME_RESEARCH_MAC = ${SERVICE_NAME_RESEARCH_MAC}-${USR}
 CONTAINER_NAME_DEPLOY = ${SERVICE_NAME_DEPLOY}
 
 # Docker build context
@@ -54,6 +55,7 @@ ENV_TEXT = $\
 	IMAGE_NAME_RESEARCH_MAC=${IMAGE_NAME_RESEARCH_MAC}\n$\
 	IMAGE_NAME_DEPLOY=${IMAGE_NAME_DEPLOY}\n$\
 	CONTAINER_NAME_RESEARCH=${CONTAINER_NAME_RESEARCH}\n$\
+	CONTAINER_NAME_RESEARCH_MAC=${CONTAINER_NAME_RESEARCH_MAC}\n$\
 	CONTAINER_NAME_DEPLOY=${CONTAINER_NAME_DEPLOY}\n$\
 	WORKDIR_PATH=${WORKDIR_PATH}\n$\
 	CURRENT_PATH=${CURRENT_PATH}\n$\
@@ -114,33 +116,33 @@ ls-base:
 
 # research docker
 build-${RESEARCH_NAME}: build-base
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml up --build -d ${SERVICE_NAME_RESEARCH_MAC}
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml up --build -d ${SERVICE_NAME_RESEARCH}
 up-${RESEARCH_NAME}:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml up -d ${SERVICE_NAME_RESEARCH_MAC}
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml up -d ${SERVICE_NAME_RESEARCH}
 exec-${RESEARCH_NAME}:
-	DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml exec ${SERVICE_NAME_RESEARCH_MAC} ${COMMAND_RESEARCH}
+	DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml exec ${SERVICE_NAME_RESEARCH} ${COMMAND_RESEARCH}
 start-${RESEARCH_NAME}:
-	docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml start ${SERVICE_NAME_RESEARCH_MAC}
+	docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml start ${SERVICE_NAME_RESEARCH}
 down-${RESEARCH_NAME}:
 	docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml down
 run-${RESEARCH_NAME}:
-	docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml run ${SERVICE_NAME_RESEARCH_MAC} ${COMMAND_RESEARCH}
+	docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml run ${SERVICE_NAME_RESEARCH} ${COMMAND_RESEARCH}
 ls-${RESEARCH_NAME}:
 	docker compose ls -a
 
 # research mac 
 build-${RESEARCH_NAME}-mac: build-base
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} up --build -d ${SERVICE_NAME_RESEARCH}
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} up --build -d ${SERVICE_NAME_RESEARCH_MAC}
 up-${RESEARCH_NAME}-mac:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} up -d ${SERVICE_NAME_RESEARCH}
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} up -d ${SERVICE_NAME_RESEARCH_MAC}
 exec-${RESEARCH_NAME}-mac:
-	DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} exec ${SERVICE_NAME_RESEARCH} ${COMMAND_RESEARCH}
+	DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} exec ${SERVICE_NAME_RESEARCH_MAC} ${COMMAND_RESEARCH}
 start-${RESEARCH_NAME}-mac:
-	docker compose -f ${DOCKER_COMPOSE_NAME} start ${SERVICE_NAME_RESEARCH}
+	docker compose -f ${DOCKER_COMPOSE_NAME} start ${SERVICE_NAME_RESEARCH_MAC}
 down-${RESEARCH_NAME}-mac:
 	docker compose -f ${DOCKER_COMPOSE_NAME} down
 run-${RESEARCH_NAME}-mac:
-	docker compose -f ${DOCKER_COMPOSE_NAME} run ${SERVICE_NAME_RESEARCH} ${COMMAND_RESEARCH}
+	docker compose -f ${DOCKER_COMPOSE_NAME} run ${SERVICE_NAME_RESEARCH_MAC} ${COMMAND_RESEARCH}
 ls-${RESEARCH_NAME}-mac:
 	docker compose ls -a
 

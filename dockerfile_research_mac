@@ -45,6 +45,7 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
     && rm -rf /var/lib/apt/lists/*
 
 # pip
+RUN pip3 --no-cache-dir install torch==2.2.1
 COPY requirements/requirements_research_mac.txt /requirements_research_mac.txt
 RUN pip3 --no-cache-dir install -r /requirements_research_mac.txt
 
