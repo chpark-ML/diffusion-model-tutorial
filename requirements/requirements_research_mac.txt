@@ -26,7 +26,6 @@ matplotlib
 mlflow
 nltk
 onnxruntime
-onnxruntime-gpu
 opencv-python
 openpyxl
 pandas

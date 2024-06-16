@@ -4,6 +4,7 @@ RESEARCH_NAME = research
 DEPLOY_NAME = deploy
 SERVICE_NAME_BASE = ${SERVICE_NAME}-base
 SERVICE_NAME_RESEARCH = ${SERVICE_NAME}-${RESEARCH_NAME}
+SERVICE_NAME_RESEARCH_MAC = ${SERVICE_NAME}-${RESEARCH_NAME}-mac
 SERVICE_NAME_DEPLOY = ${SERVICE_NAME}-${DEPLOY_NAME}
 
 # Set command
@@ -20,6 +21,7 @@ USR = $(shell id -un)
 # Get docker image name
 IMAGE_NAME_BASE = ${SERVICE_NAME_BASE}:1.0.0
 IMAGE_NAME_RESEARCH = ${SERVICE_NAME_RESEARCH}-${USR}:1.0.0
+IMAGE_NAME_RESEARCH_MAC = ${SERVICE_NAME_RESEARCH_MAC}-${USR}:1.0.0
 IMAGE_NAME_DEPLOY = ${SERVICE_NAME_DEPLOY}:1.0.0
 
 # Get docker container name
@@ -30,6 +32,7 @@ CONTAINER_NAME_DEPLOY = ${SERVICE_NAME_DEPLOY}
 DOCKER_BUILD_CONTEXT_PATH = .
 DOCKERFILE_NAME_BASE = dockerfile_base
 DOCKERFILE_NAME_RESEARCH = dockerfile_research
+DOCKERFILE_NAME_RESEARCH_MAC = dockerfile_research_mac
 DOCKERFILE_NAME_DEPLOY = dockerfile_deploy
 DOCKER_COMPOSE_NAME = docker-compose.yaml
 ENV_FILE_PATH = .env
@@ -48,6 +51,7 @@ ENV_TEXT = $\
 	SERVICE_NAME=${SERVICE_NAME}\n$\
 	IMAGE_NAME_BASE=${IMAGE_NAME_BASE}\n$\
 	IMAGE_NAME_RESEARCH=${IMAGE_NAME_RESEARCH}\n$\
+	IMAGE_NAME_RESEARCH_MAC=${IMAGE_NAME_RESEARCH_MAC}\n$\
 	IMAGE_NAME_DEPLOY=${IMAGE_NAME_DEPLOY}\n$\
 	CONTAINER_NAME_RESEARCH=${CONTAINER_NAME_RESEARCH}\n$\
 	CONTAINER_NAME_DEPLOY=${CONTAINER_NAME_DEPLOY}\n$\
@@ -56,6 +60,7 @@ ENV_TEXT = $\
 	DOCKER_BUILD_CONTEXT_PATH=${DOCKER_BUILD_CONTEXT_PATH}\n$\
 	DOCKERFILE_NAME_BASE=${DOCKERFILE_NAME_BASE}\n$\
 	DOCKERFILE_NAME_RESEARCH=${DOCKERFILE_NAME_RESEARCH}\n$\
+	DOCKERFILE_NAME_RESEARCH_MAC=${DOCKERFILE_NAME_RESEARCH_MAC}\n$\
 	DOCKERFILE_NAME_DEPLOY=${DOCKERFILE_NAME_DEPLOY}\n$\
 	DOCKER_COMPOSE_NAME=${DOCKER_COMPOSE_NAME}\n$\
 
@@ -64,9 +69,7 @@ ${ENV_FILE_PATH}:
 
 # env  
 env:
-	@if [ -f "${ENV_FILE_PATH}" ]; then \
-		rm -f "${ENV_FILE_PATH}"; \
-	fi
+	rm -f "${ENV_FILE_PATH}"
 	printf "${ENV_TEXT}" >> "${ENV_FILE_PATH}"
 
 vs:  # Preempts `.vscode-server` directory ownership issues.
@@ -85,9 +88,7 @@ over: clean-over
 
 # clean-over 타겟 정의
 clean-over:
-	@if [ -f "${OVERRIDE_FILE}" ]; then \
-		rm -f "${OVERRIDE_FILE}"; \
-	fi
+	rm -f "${OVERRIDE_FILE}"
 
 generate:
 	scripts/yaml_update_script.sh "${SERVICE_NAME}"
@@ -113,18 +114,34 @@ ls-base:
 
 # research docker
 build-${RESEARCH_NAME}: build-base
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml up --build -d ${SERVICE_NAME_RESEARCH}
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml up --build -d ${SERVICE_NAME_RESEARCH_MAC}
 up-${RESEARCH_NAME}:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml up -d ${SERVICE_NAME_RESEARCH}
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml up -d ${SERVICE_NAME_RESEARCH_MAC}
 exec-${RESEARCH_NAME}:
-	DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml exec ${SERVICE_NAME_RESEARCH} ${COMMAND_RESEARCH}
+	DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml exec ${SERVICE_NAME_RESEARCH_MAC} ${COMMAND_RESEARCH}
 start-${RESEARCH_NAME}:
-	docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml start ${SERVICE_NAME_RESEARCH}
+	docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml start ${SERVICE_NAME_RESEARCH_MAC}
 down-${RESEARCH_NAME}:
 	docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml down
 run-${RESEARCH_NAME}:
-	docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml run ${SERVICE_NAME_RESEARCH} ${COMMAND_RESEARCH}
+	docker compose -f ${DOCKER_COMPOSE_NAME} -f docker-compose.override.yaml run ${SERVICE_NAME_RESEARCH_MAC} ${COMMAND_RESEARCH}
 ls-${RESEARCH_NAME}:
+	docker compose ls -a
+
+# research mac 
+build-${RESEARCH_NAME}-mac: build-base
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} up --build -d ${SERVICE_NAME_RESEARCH}
+up-${RESEARCH_NAME}-mac:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} up -d ${SERVICE_NAME_RESEARCH}
+exec-${RESEARCH_NAME}-mac:
+	DOCKER_BUILDKIT=1 docker compose -f ${DOCKER_COMPOSE_NAME} exec ${SERVICE_NAME_RESEARCH} ${COMMAND_RESEARCH}
+start-${RESEARCH_NAME}-mac:
+	docker compose -f ${DOCKER_COMPOSE_NAME} start ${SERVICE_NAME_RESEARCH}
+down-${RESEARCH_NAME}-mac:
+	docker compose -f ${DOCKER_COMPOSE_NAME} down
+run-${RESEARCH_NAME}-mac:
+	docker compose -f ${DOCKER_COMPOSE_NAME} run ${SERVICE_NAME_RESEARCH} ${COMMAND_RESEARCH}
+ls-${RESEARCH_NAME}-mac:
 	docker compose ls -a
 
 # deploy docker
