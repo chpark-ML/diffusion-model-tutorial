@@ -166,5 +166,5 @@ docker-compose.override.yaml
 docker-compose.yaml
 
 # dataframe
-*.csv
-*.xlsx
+# *.csv
+# *.xlsx
