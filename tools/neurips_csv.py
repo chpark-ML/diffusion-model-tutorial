@@ -260,8 +260,8 @@ def main():
     key_words_list = []
     for tfidf_dict in word_tfidf:
         key_words = sorted(tfidf_dict.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
-        key_words = [word for word, _ in key_words]
-        key_words_list.append(", ".join(key_words))
+        key_words = {word: score for word, score in key_words if score >= 0.05}
+        key_words_list.append(key_words)
     papers_df["TF-IDF given the whole Abstract"] = key_words_list
 
     del papers_df["PDF Text"]
