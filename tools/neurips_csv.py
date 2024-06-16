@@ -21,8 +21,6 @@ logger = logging.getLogger(__name__)
 nltk.download("stopwords")
 nltk.download("punkt")
 
-YEAR = 2023
-BASE_URL = f"https://papers.nips.cc/paper_files/paper/{YEAR}"
 MAX_NUM_PAPER = 10000
 TOP_K = 10
 
@@ -131,7 +129,7 @@ def extract_paper_info(url):
     return title, authors, abstract, pdf_url, publication_date
 
 
-def process(paper_links_chunks, is_sanity=False):
+def process(paper_links_chunks, base_url, is_sanity=False):
     """
     Given a NeurIPS conference year, extracts paper titles, authors, abstracts, PDF URLs, and publication dates,
     and returns them as a DataFrame.
@@ -145,7 +143,7 @@ def process(paper_links_chunks, is_sanity=False):
             continue
 
         paper_id = link["href"].split("/")[-1]
-        paper_url = f"{BASE_URL}/hash/{paper_id}"
+        paper_url = f"{base_url}/hash/{paper_id}"
 
         # 논문 정보 추출
         title, authors, abstract, pdf_url, publication_date = extract_paper_info(
@@ -218,11 +216,13 @@ def chunkify(lst, n):
 
 def main():
     parser = argparse.ArgumentParser(description="neurips info extraction")
+    parser.add_argument("--year", default=2023, type=int)
     parser.add_argument("--sanity_check", type=bool, default=False)
     parser.add_argument("--num_shards", default=32, type=int)
     args = parser.parse_args()
 
-    response = requests.get(BASE_URL)
+    base_url = f"https://papers.nips.cc/paper_files/paper/{args.year}"
+    response = requests.get(base_url)
     response.raise_for_status()
 
     soup = BeautifulSoup(response.text, "html.parser")
@@ -239,7 +239,7 @@ def main():
         results = process(paper_links_chunks[0], is_sanity=True)
 
     with multiprocessing.Pool(args.num_shards) as p:
-        results = p.map(functools.partial(process, is_sanity=False), paper_links_chunks)
+        results = p.map(functools.partial(process, base_url=base_url, is_sanity=False), paper_links_chunks)
 
     if isinstance(results, pd.DataFrame):
         papers_df = results
@@ -266,7 +266,7 @@ def main():
 
     del papers_df["PDF Text"]
 
-    save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}')
+    save_dataframe_to_csv(papers_df, f'neurips_papers_{args.year}')
 
 
 if __name__ == "__main__":
