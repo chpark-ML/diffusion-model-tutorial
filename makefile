@@ -1,5 +1,5 @@
 # Set service name
-SERVICE_NAME = diffusion-model-tutorial
+SERVICE_NAME = neurips-keyword-analysis
 RESEARCH_NAME = research
 DEPLOY_NAME = deploy
 SERVICE_NAME_BASE = ${SERVICE_NAME}-base
@@ -40,7 +40,7 @@ WORKDIR_PATH = /opt/${SERVICE_NAME}
 CURRENT_PATH = $(shell pwd)
 
 # Set enviornments
-ENV_TEXT = "$\
+ENV_TEXT = $\
 	GID=${GID}\n$\
 	UID=${UID}\n$\
 	GRP=${GRP}\n$\
@@ -57,29 +57,43 @@ ENV_TEXT = "$\
 	DOCKERFILE_NAME_BASE=${DOCKERFILE_NAME_BASE}\n$\
 	DOCKERFILE_NAME_RESEARCH=${DOCKERFILE_NAME_RESEARCH}\n$\
 	DOCKERFILE_NAME_DEPLOY=${DOCKERFILE_NAME_DEPLOY}\n$\
-	DOCKER_COMPOSE_NAME=${DOCKER_COMPOSE_NAME}\n$\"
+	DOCKER_COMPOSE_NAME=${DOCKER_COMPOSE_NAME}\n$\
+
 ${ENV_FILE_PATH}:
 	printf ${ENV_TEXT} >> ${ENV_FILE_PATH}
 
 # env  
-env: ${ENV_FILE_PATH}
+env:
+	@if [ -f "${ENV_FILE_PATH}" ]; then \
+		rm -f "${ENV_FILE_PATH}"; \
+	fi
+	printf "${ENV_TEXT}" >> "${ENV_FILE_PATH}"
 
 vs:  # Preempts `.vscode-server` directory ownership issues.
 	@mkdir -p ${HOME}/.vscode-server
 
-OVERRIDE_BASE = "$\
-services:$\
-\n  ${SERVICE_NAME_RESEARCH}:$\
-\n    volumes:$\
-\n      - ${HOME}:/mnt/home$\
-\n"
+OVERRIDE_BASE = $\
+	services:$\
+	\n  ${SERVICE_NAME_RESEARCH}:$\
+	\n    volumes:$\
+	\n      - ${HOME}:/mnt/home$\
+	\n
+	  
+# over 타겟 정의
+over: clean-over
+	printf "${OVERRIDE_BASE}" >> "${OVERRIDE_FILE}"
 
-over:
-	printf ${OVERRIDE_BASE} >> ${OVERRIDE_FILE}
+# clean-over 타겟 정의
+clean-over:
+	@if [ -f "${OVERRIDE_FILE}" ]; then \
+		rm -f "${OVERRIDE_FILE}"; \
+	fi
 
 generate:
-	chmod +x generate-docker-compose.sh
-	DOCKER_COMPOSE_NAME=$(DOCKER_COMPOSE_NAME) ./generate-docker-compose.sh
+	scripts/yaml_update_script.sh "${SERVICE_NAME}"
+
+# all
+pre: env over generate
 
 # base docker
 build-base:
