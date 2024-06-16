@@ -246,23 +246,24 @@ def main():
     else:
         papers_df = pd.concat(results, ignore_index=True)
 
-    abstracts = papers_df["Abstract"].astype(str).tolist()
-    word_tfidf_abstracts = calculate_tfidf(abstracts)
+    titles = papers_df["Title"].astype(str).tolist()
+    word_tfidf = calculate_tfidf(titles)
     key_words_list = []
-    for tfidf_dict in word_tfidf_abstracts:
+    for tfidf_dict in word_tfidf:
+        key_words = sorted(tfidf_dict.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
+        key_words = [word for word, _ in key_words]
+        key_words_list.append(", ".join(key_words))
+    papers_df["TF-IDF given the whole Title"] = key_words_list
+
+    abstracts = papers_df["Abstract"].astype(str).tolist()
+    word_tfidf = calculate_tfidf(abstracts)
+    key_words_list = []
+    for tfidf_dict in word_tfidf:
         key_words = sorted(tfidf_dict.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
         key_words = [word for word, _ in key_words]
         key_words_list.append(", ".join(key_words))
     papers_df["TF-IDF given the whole Abstract"] = key_words_list
 
-    # pdf_text = papers_df["PDF Text"].astype(str).tolist()
-    # word_tfidf_pdf_text = calculate_tfidf(pdf_text)
-    # key_words_list = []
-    # for tfidf_dict in word_tfidf_pdf_text:
-    #     key_words = sorted(tfidf_dict.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
-    #     key_words = [word for word, _ in key_words]
-    #     key_words_list.append(", ".join(key_words))
-    # papers_df["TF-IDF given the whole Full Text"] = key_words_list
     del papers_df["PDF Text"]
 
     save_dataframe_to_csv(papers_df, f'neurips_papers_{YEAR}')
