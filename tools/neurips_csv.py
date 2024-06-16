@@ -251,8 +251,8 @@ def main():
     key_words_list = []
     for tfidf_dict in word_tfidf:
         key_words = sorted(tfidf_dict.items(), key=lambda x: x[1], reverse=True)[:TOP_K]
-        key_words = [word for word, score in key_words if score >= 0.05]  # Title 길이는 짧아서 쓸모없는 Keyword가 많이 들어올 수 있음.
-        key_words_list.append(", ".join(key_words))
+        key_words = {word: score for word, score in key_words if score >= 0.05}  # Title 길이는 짧아서 쓸모없는 Keyword가 많이 들어올 수 있음.
+        key_words_list.append(key_words)
     papers_df["TF-IDF given the whole Title"] = key_words_list
 
     abstracts = papers_df["Abstract"].astype(str).tolist()
