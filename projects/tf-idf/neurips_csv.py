@@ -5,21 +5,14 @@ import logging
 import os
 
 import fitz  # PyMuPDF
-import nltk
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm import tqdm
 
 
 _THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger(__name__)
-
-# NLTK에서 영어의 불용어(stopwords) 다운로드
-nltk.download("stopwords")
-nltk.download("punkt")
 
 MAX_NUM_PAPER = 10000
 TOP_K = 10
@@ -73,36 +66,6 @@ def extract_text_from_pdf(pdf_content, stop_pattern="References\n"):
     except Exception as e:
         log_error(pdf_content, e)
         return None
-
-
-def calculate_tfidf(text):
-    """
-    Calculate TF-IDF scores for each word in the text and return a dictionary of words and their TF-IDF scores.
-    """
-    # Check if the input text is empty or contains only stop words
-    if not isinstance(text, list):
-        if not text.strip():
-            raise ValueError("The input text is empty.")
-        docs = [text]
-    else:
-        docs = text
-
-    # TF-IDF vectorization
-    tfidf_vectorizer = TfidfVectorizer(stop_words=stopwords.words("english"))
-
-    tfidf_matrix = tfidf_vectorizer.fit_transform(docs)
-
-    # Check if the resulting matrix is empty
-    if tfidf_matrix.shape[1] == 0:
-        raise ValueError("The input text contains only stop words or no valid words for TF-IDF calculation.")
-
-    feature_names = tfidf_vectorizer.get_feature_names_out()
-
-    # Create a dictionary of words and their TF-IDF scores
-    word_tfidf = [{word: score for word, score in zip(feature_names, tfidf_matrix.toarray()[idx])}
-                  for idx, _ in enumerate(docs)]
-
-    return word_tfidf
 
 
 def extract_paper_info(url):
@@ -199,7 +162,7 @@ def process(paper_links_chunks, base_url, is_sanity=False):
         return pd.DataFrame(paper_data)
 
 
-def save_dataframe_to_csv(dataframe, filename):
+def save_dataframe_to_csv(dataframe, filepath, filename):
     """
     Saves a DataFrame to a CSV file.
     """
@@ -266,7 +229,7 @@ def main():
 
     del papers_df["PDF Text"]
 
-    save_dataframe_to_csv(papers_df, f'neurips_papers_{args.year}')
+    save_dataframe_to_csv(papers_df, 'assets', f'neurips_papers_{args.year}')
 
 
 if __name__ == "__main__":
