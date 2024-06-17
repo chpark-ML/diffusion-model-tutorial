@@ -10,6 +10,8 @@ import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+from commons.utils import calculate_tfidf
+
 
 _THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger(__name__)
@@ -109,35 +111,11 @@ def process(paper_links_chunks, base_url, is_sanity=False):
         paper_url = f"{base_url}/hash/{paper_id}"
 
         # 논문 정보 추출
-        title, authors, abstract, pdf_url, publication_date = extract_paper_info(
-            paper_url
-        )
-        try:
-            key_words_in_abstract = calculate_tfidf(abstract)[0]
-        except ValueError as e:
-            log_error(title, e)
-            continue
-        key_words_in_abstract = sorted(
-            key_words_in_abstract.items(), key=lambda x: x[1], reverse=True
-        )[:TOP_K]
-        key_words_in_abstract = [word for word, _ in key_words_in_abstract]
+        title, authors, abstract, pdf_url, publication_date = extract_paper_info(paper_url)
 
         # PDF 파일 다운로드, 텍스트 추출
         pdf_content = download_pdf_from_url(pdf_url)
         pdf_text = extract_text_from_pdf(pdf_content)
-
-        # TF-IDF 계산
-        try:
-            word_tfidf = calculate_tfidf(pdf_text)[0]
-        except ValueError as e:
-            log_error(title, e)
-            continue
-
-        # TF-IDF가 높은 단어 topk 출력
-        key_words_in_paper = sorted(
-            word_tfidf.items(), key=lambda x: x[1], reverse=True
-        )[:TOP_K]
-        key_words_in_paper = [word for word, _ in key_words_in_paper]
 
         # 논문 데이터 추가
         paper_data.append({"Title": title,
@@ -145,9 +123,7 @@ def process(paper_links_chunks, base_url, is_sanity=False):
                            "Abstract": abstract,
                            "PDF Text": pdf_text,
                            "PDF URL": pdf_url,
-                           "Publication date": publication_date,
-                           "TF-IDF given Paper-wise Abstract": ", ".join(key_words_in_abstract),
-                           "TF-IDF given Paper-wise Full Text": ", ".join(key_words_in_paper)})
+                           "Publication date": publication_date})
     if len(paper_data) == 0:
         return pd.DataFrame(
             pd.DataFrame(columns=["Title",
@@ -155,9 +131,7 @@ def process(paper_links_chunks, base_url, is_sanity=False):
                                   "Abstract",
                                   "PDF Text",
                                   "PDF_URL",
-                                  "Publication_Date",
-                                  "TF-IDF given Paper-wise Abstract",
-                                  "TF-IDF given Paper-wise Full Text"]))
+                                  "Publication_Date"]))
     else:
         return pd.DataFrame(paper_data)
 
