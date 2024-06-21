@@ -12,6 +12,7 @@ ipywidgets
 jupyterlab
 matplotlib
 nltk
+lxml
 opencv-python
 openpyxl
 pandas

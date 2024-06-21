@@ -25,6 +25,7 @@ jupyterlab
 matplotlib
 mlflow
 nltk
+lxml
 onnxruntime
 onnxruntime-gpu
 opencv-python

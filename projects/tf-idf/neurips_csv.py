@@ -2,7 +2,6 @@ import argparse
 import functools
 import multiprocessing
 import logging
-import os
 
 import fitz  # PyMuPDF
 import pandas as pd
@@ -10,10 +9,9 @@ import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from commons.utils import calculate_tfidf
+from commons.utils import calculate_tfidf, chunkify, download_pdf_from_url, extract_paper_info
 
 
-_THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger(__name__)
 
 MAX_NUM_PAPER = 10000
@@ -27,16 +25,7 @@ def log_error(error_id, error):
     logger.info(f"ID: {error_id}")
     logger.info(f"Error: {error}")
 
-
-def download_pdf_from_url(pdf_url):
-    """
-    Download a PDF file from a URL and return the file content as bytes.
-    """
-    response = requests.get(pdf_url)
-    response.raise_for_status()
-    return response.content
-
-
+    
 def extract_text_from_pdf(pdf_content, stop_pattern="References\n"):
     """
     Extract text content from a PDF file until the stop pattern is encountered.
@@ -68,31 +57,7 @@ def extract_text_from_pdf(pdf_content, stop_pattern="References\n"):
     except Exception as e:
         log_error(pdf_content, e)
         return None
-
-
-def extract_paper_info(url):
-    """
-    Given a URL of a NeurIPS paper, extracts the title, authors, abstract, PDF URL, and publication date.
-    """
-    response = requests.get(url)
-    response.raise_for_status()
-
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    title = soup.find("title").get_text(strip=True)
-
-    # 클래스 이름이 있는 요소를 필터링하여 제외합니다.
-    exclusion = ["fa-sign-in-alt", "fa-sign-out-alt"]
-    authors = ", ".join([author.get_text(strip=True)
-                         for author in soup.find_all("i")
-                         if not any(ex in author.get("class", []) for ex in exclusion)])
-
-    abstract = soup.find("h4", string="Abstract").find_next("p").get_text(strip=True)
-    pdf_url = soup.find("meta", {"name": "citation_pdf_url"})["content"]
-    publication_date = soup.find("meta", {"name": "citation_publication_date"})["content"]
-
-    return title, authors, abstract, pdf_url, publication_date
-
+    
 
 def process(paper_links_chunks, base_url, is_sanity=False):
     """
@@ -144,13 +109,6 @@ def save_dataframe_to_csv(dataframe, filepath, filename):
     dataframe.to_excel(filename + ".xlsx", index=False)
 
 
-def chunkify(lst, n):
-    """리스트를 n 개의 청크로 나누는 함수"""
-    chunk_size = len(lst) // n + (len(lst) % n > 0)
-    for i in range(0, len(lst), chunk_size):
-        yield lst[i: i + chunk_size]
-
-
 def main():
     parser = argparse.ArgumentParser(description="neurips info extraction")
     parser.add_argument("--year", default=2023, type=int)
@@ -173,7 +131,7 @@ def main():
 
     # sanity check
     if args.sanity_check:
-        results = process(paper_links_chunks[0], is_sanity=True)
+        results = process(paper_links_chunks[0], base_url=base_url, is_sanity=True)
 
     with multiprocessing.Pool(args.num_shards) as p:
         results = p.map(functools.partial(process, base_url=base_url, is_sanity=False), paper_links_chunks)
